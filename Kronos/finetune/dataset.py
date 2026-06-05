@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from src.config import Config
+from config import Config
 
 
 class QlibDataset(Dataset):

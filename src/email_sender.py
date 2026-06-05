@@ -7,7 +7,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-import src.config as config
+import config as config
 
 
 TEMPLATES_DIR = config.PROJECT_ROOT / "templates"

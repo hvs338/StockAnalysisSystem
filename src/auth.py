@@ -3,7 +3,7 @@ import logging
 
 from schwab import auth as schwab_auth
 
-import src.config as config
+import config as config
 
 log = logging.getLogger(__name__)
 

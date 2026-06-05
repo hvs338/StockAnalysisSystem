@@ -10,8 +10,8 @@ pytest fixture name.
 
 import pytest
 
-import src.alert_rules as alert_rules
-import src.schwab_client as sc
+import alert_rules as alert_rules
+import schwab_client as sc
 
 
 pytestmark = pytest.mark.live

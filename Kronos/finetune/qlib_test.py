@@ -21,7 +21,7 @@ from qlib.utils.time import Freq
 
 # Ensure project root is in the Python path
 sys.path.append("../")
-from src.config import Config
+from config import Config
 from model.kronos import Kronos, KronosTokenizer, auto_regressive_inference
 
 

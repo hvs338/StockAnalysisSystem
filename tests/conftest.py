@@ -25,8 +25,8 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-import src.config as config  # noqa: E402
-import src.auth as auth  # noqa: E402
+import config as config  # noqa: E402
+import auth as auth  # noqa: E402
 
 
 def _missing_creds_reason() -> str | None:

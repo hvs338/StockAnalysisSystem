@@ -17,11 +17,11 @@ import json
 import logging
 from datetime import datetime, timezone
 
-import src.alert_rules as alert_rules
-import src.auth as auth
-import src.config as config
-import src.schwab_client as schwab_client
-import src.stock_prediction as sp
+import alert_rules as alert_rules
+import auth as auth
+import config as config
+import schwab_client as schwab_client
+import stock_prediction as sp
 
 log = logging.getLogger("kronos_runner")
 

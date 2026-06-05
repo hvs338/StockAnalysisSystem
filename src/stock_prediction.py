@@ -22,9 +22,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-import src.auth as auth
-import src.config as config
-import src.schwab_client as schwab_client
+import auth as auth
+import config as config
+import schwab_client as schwab_client
 
 log = logging.getLogger("stock_prediction")
 

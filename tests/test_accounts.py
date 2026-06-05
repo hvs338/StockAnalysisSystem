@@ -5,7 +5,7 @@ These are read-only — no orders are placed.
 
 import pytest
 
-import src.schwab_client as sc
+import schwab_client as sc
 
 
 pytestmark = pytest.mark.live

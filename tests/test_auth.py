@@ -10,7 +10,7 @@ import os
 
 import pytest
 
-import src.config as config
+import config as config
 
 
 pytestmark = pytest.mark.live

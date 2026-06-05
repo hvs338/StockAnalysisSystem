@@ -3,11 +3,11 @@ import logging
 import logging.handlers
 import sys
 
-import src.config as config
-import src.auth as auth
-import src.schwab_client as schwab_client
-import src.alert_rules as alert_rules
-import src.email_sender as email_sender
+import config as config
+import auth as auth
+import schwab_client as schwab_client
+import alert_rules as alert_rules
+import email_sender as email_sender
 
 
 def setup_logging() -> None:

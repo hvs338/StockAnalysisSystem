@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-import src.config as config
+import config as config
 
 
 @dataclass

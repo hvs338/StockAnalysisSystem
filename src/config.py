@@ -62,6 +62,16 @@ KRONOS_SAMPLES = int(os.environ.get("KRONOS_SAMPLES", "25"))
 KRONOS_TEMPERATURE = float(os.environ.get("KRONOS_TEMPERATURE", "1.0"))
 KRONOS_TOP_P = float(os.environ.get("KRONOS_TOP_P", "0.9"))
 
+# Bedrock AI analysis (stock_analysis.py). Calls Claude on Amazon Bedrock via boto3.
+# Bedrock model IDs carry an "anthropic." prefix. Default to the current flagship, Opus 4.8.
+# Requires AWS creds (env / shared config / IAM role) and model access enabled in the region.
+# ENABLE_ANALYSIS gates the (future) email section; the CLI runs regardless. Off by default
+# until the AWS account + Bedrock model access are set up.
+BEDROCK_MODEL = os.environ.get("BEDROCK_MODEL", "anthropic.claude-opus-4-8")
+AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
+ENABLE_ANALYSIS = _env_bool("ENABLE_ANALYSIS", "0")
+ANALYSIS_MAX_TOKENS = int(os.environ.get("ANALYSIS_MAX_TOKENS", "4096"))
+
 
 def require_schwab_creds() -> None:
     missing = [

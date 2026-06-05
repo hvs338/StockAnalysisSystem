@@ -8,7 +8,7 @@ from qlib.data import D
 from qlib.data.dataset.loader import QlibDataLoader
 from tqdm import trange
 
-from src.config import Config
+from config import Config
 
 
 class QlibDataPreprocessor:
