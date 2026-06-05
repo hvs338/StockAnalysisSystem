@@ -1,0 +1,14 @@
+# Heavy ML stack for the Kronos forecaster (stock_prediction.py) — kept separate from the
+# lightweight daily digest (requirements.txt). Install only on the machine that runs Kronos.
+#
+# For CUDA on the RTX 3070 laptop, install torch from the CUDA index instead of the line
+# below. The build must match both the GPU driver and the Python version. On the 3070
+# laptop (driver CUDA 12.5, Python 3.14) the working wheel is cu126 (cu124 has no 3.14
+# wheel; cu126 runs on the 12.5 driver via CUDA minor-version compatibility):
+#   pip install torch==2.12.0+cu126 --index-url https://download.pytorch.org/whl/cu126
+torch
+pandas
+matplotlib
+huggingface_hub
+transformers
+einops

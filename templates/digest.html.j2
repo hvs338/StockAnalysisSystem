@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Schwab Watchlist Digest</title>
+<!--[if mso]>
+<style type="text/css">
+  table { border-collapse: collapse; }
+  td, th, div, p, a { font-family: Georgia, 'Times New Roman', serif; }
+</style>
+<![endif]-->
+<style type="text/css">
+  body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+  img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+  body { margin: 0; padding: 0; width: 100% !important; }
+
+  @media screen and (max-width: 600px) {
+    .container { width: 100% !important; }
+    .px { padding-left: 20px !important; padding-right: 20px !important; }
+    .stack { display: block !important; width: 100% !important; }
+    .sym-cell { font-size: 18px !important; }
+    .hide-sm { display: none !important; }
+    .price-lg { font-size: 26px !important; }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .bg-page { background-color: #14130f !important; }
+    .bg-card { background-color: #1c1b16 !important; }
+    .ink { color: #ede9dd !important; }
+    .ink-soft { color: #a8a395 !important; }
+    .rule { border-color: #34322a !important; }
+    .chip-neutral { background-color: #2a2820 !important; color: #c9c4b4 !important; }
+  }
+</style>
+</head>
+<body style="margin:0; padding:0; background-color:#e8e4d8;">
+  <!-- Preheader (hidden) -->
+  <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#e8e4d8;">
+    {{ alert_count }} alert{% if alert_count != 1 %}s{% endif %} today &middot; closing prices as of 4:00 PM ET &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="bg-page" style="background-color:#e8e4d8;">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+
+        <!-- ============ CARD ============ -->
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="container bg-card" style="width:600px; max-width:600px; background-color:#fbfaf5; border:1px solid #d6d1c2;">
+
+          <!-- ====== MASTHEAD ====== -->
+          <tr>
+            <td class="px" style="padding:30px 40px 22px 40px; border-bottom:2px solid #1a1a17;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="left" valign="middle">
+                    <div style="font-family:Georgia,'Times New Roman',serif; font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#9a7b3f; font-weight:bold;">Watchlist Brief</div>
+                    <div class="ink" style="font-family:Georgia,'Times New Roman',serif; font-size:30px; line-height:1.1; color:#1a1a17; font-weight:bold; padding-top:4px;">The Daily Run</div>
+                  </td>
+                  <td align="right" valign="middle" class="hide-sm">
+                    <div class="ink-soft" style="font-family:Georgia,'Times New Roman',serif; font-size:13px; color:#6b6657; text-align:right; line-height:1.5;">
+                      {{ weekday }}<br>{{ date_full_nbsp|safe }}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ====== SUMMARY STRIP ====== -->
+          <tr>
+            <td class="px" style="padding:0 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="stack" width="33%" valign="top" style="padding:22px 0;">
+                    <div class="ink" style="font-family:Georgia,serif; font-size:34px; line-height:1; color:#1a1a17; font-weight:bold;">{{ alert_count }}</div>
+                    <div class="ink-soft" style="font-family:Georgia,serif; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#6b6657; padding-top:5px;">Alerts Today</div>
+                  </td>
+                  <td class="stack" width="33%" valign="top" style="padding:22px 0;">
+                    <div style="font-family:Georgia,serif; font-size:34px; line-height:1; color:{{ avg_pct_color }}; font-weight:bold;">{{ avg_pct_text }}</div>
+                    <div class="ink-soft" style="font-family:Georgia,serif; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#6b6657; padding-top:5px;">Watchlist Avg</div>
+                  </td>
+                  <td class="stack" width="33%" valign="top" style="padding:22px 0;">
+                    <div class="ink" style="font-family:Georgia,serif; font-size:34px; line-height:1; color:#1a1a17; font-weight:bold;">{{ symbol_count }}</div>
+                    <div class="ink-soft" style="font-family:Georgia,serif; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#6b6657; padding-top:5px;">Symbols Tracked</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ====== FLAGGED RUNS HEADER ====== -->
+          <tr>
+            <td class="px" style="padding:14px 40px 8px 40px; background-color:#1a1a17;">
+              <div style="font-family:Georgia,serif; font-size:12px; letter-spacing:3px; text-transform:uppercase; color:#d8b56a; font-weight:bold;">&#9650;&nbsp;&nbsp;Flagged Runs</div>
+            </td>
+          </tr>
+
+          {% if flagged_rows %}
+            {% for row in flagged_rows %}
+            <tr>
+              <td class="px" style="padding:20px 40px; border-bottom:{% if loop.last %}2px solid #1a1a17{% else %}1px solid #e4dfd0{% endif %};">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td valign="top">
+                      <div class="sym-cell ink" style="font-family:Georgia,serif; font-size:21px; color:#1a1a17; font-weight:bold; letter-spacing:0.5px;">{{ row.symbol }}</div>
+                      <div class="ink-soft" style="font-family:Georgia,serif; font-size:13px; color:#6b6657; padding-top:2px;">{{ row.name }}</div>
+                      <div style="padding-top:9px;">
+                        {% for pill in row.pills %}<span style="display:inline-block; font-family:Georgia,serif; font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:{{ pill.color }}; background-color:{{ pill.bg }}; padding:4px 10px; border:1px solid {{ pill.border }}; font-weight:bold;">{{ pill.text }}</span>{% if not loop.last or row.held_pill %}&nbsp;{% endif %}{% endfor %}{% if row.held_pill %}<span style="display:inline-block; font-family:Georgia,serif; font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:{{ row.held_pill.color }}; background-color:{{ row.held_pill.bg }}; padding:4px 10px; border:1px solid {{ row.held_pill.border }}; font-weight:bold;">{{ row.held_pill.text }}</span>{% endif %}
+                      </div>
+                    </td>
+                    <td valign="top" align="right" width="190">
+                      <div class="price-lg ink" style="font-family:Georgia,serif; font-size:28px; color:#1a1a17; font-weight:bold;">{{ row.last_price }}</div>
+                      <div style="font-family:Georgia,serif; font-size:16px; color:{{ row.pct_color }}; font-weight:bold; padding-top:3px;">{{ row.pct_arrow }} {{ row.pct_change_text }}</div>
+                      <div class="ink-soft" style="font-family:Georgia,serif; font-size:12px; color:#6b6657; padding-top:6px; line-height:1.5;">
+                        {% if row.range_text %}{{ row.range_text }}<br>{% endif %}
+                        {% if row.distance_text %}{{ row.distance_text }}{% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td class="px" style="padding:24px 40px; border-bottom:2px solid #1a1a17;">
+                <div class="ink-soft" style="font-family:Georgia,serif; font-size:14px; color:#6b6657; font-style:italic;">No flags today &mdash; nothing crossed the thresholds.</div>
+              </td>
+            </tr>
+          {% endif %}
+
+          {% if has_movers %}
+          <!-- ====== MARKET MOVERS HEADER ====== -->
+          <tr>
+            <td class="px" style="padding:14px 40px 8px 40px; background-color:#1a1a17;">
+              <div style="font-family:Georgia,serif; font-size:12px; letter-spacing:3px; text-transform:uppercase; color:#d8b56a; font-weight:bold;">Market Movers &middot; {{ movers_index_label }}</div>
+            </td>
+          </tr>
+
+          {% if movers_up %}
+          <tr>
+            <td class="px" style="padding:18px 40px 4px 40px;">
+              <div class="ink" style="font-family:Georgia,serif; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:#1f4d33; font-weight:bold;">&#9650;&nbsp; Top Gainers</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="px" style="padding:0 40px 8px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; padding:6px 0; border-bottom:1px solid #1a1a17;">Symbol</td>
+                  <td style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; padding:6px 0; border-bottom:1px solid #1a1a17;" class="hide-sm">Name</td>
+                  <td align="right" style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; padding:6px 0; border-bottom:1px solid #1a1a17;">Last</td>
+                  <td align="right" style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; padding:6px 0; border-bottom:1px solid #1a1a17;">Change</td>
+                </tr>
+                {% for m in movers_up %}
+                <tr>
+                  <td {% if not loop.last %}class="rule" {% endif %}style="font-family:Georgia,serif; font-size:15px; color:#1a1a17; font-weight:bold; padding:11px 0;{% if not loop.last %} border-bottom:1px solid #e4dfd0;{% endif %}">{{ m.symbol }}</td>
+                  <td {% if not loop.last %}class="rule" {% endif %}style="font-family:Georgia,serif; font-size:13px; color:#6b6657; padding:11px 12px 11px 0;{% if not loop.last %} border-bottom:1px solid #e4dfd0;{% endif %}" class="hide-sm">{{ m.name }}</td>
+                  <td {% if not loop.last %}class="rule" {% endif %}align="right" style="font-family:Georgia,serif; font-size:15px; color:#1a1a17; padding:11px 0;{% if not loop.last %} border-bottom:1px solid #e4dfd0;{% endif %}">{{ m.last_price }}</td>
+                  <td {% if not loop.last %}class="rule" {% endif %}align="right" style="font-family:Georgia,serif; font-size:15px; color:{{ m.pct_color }}; font-weight:bold; padding:11px 0;{% if not loop.last %} border-bottom:1px solid #e4dfd0;{% endif %}">{{ m.pct_arrow }} {{ m.pct_change_text }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+
+          {% if movers_down %}
+          <tr>
+            <td class="px" style="padding:18px 40px 4px 40px;">
+              <div class="ink" style="font-family:Georgia,serif; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:#6e1f1f; font-weight:bold;">&#9660;&nbsp; Top Decliners</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="px" style="padding:0 40px 8px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; padding:6px 0; border-bottom:1px solid #1a1a17;">Symbol</td>
+                  <td style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; padding:6px 0; border-bottom:1px solid #1a1a17;" class="hide-sm">Name</td>
+                  <td align="right" style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; padding:6px 0; border-bottom:1px solid #1a1a17;">Last</td>
+                  <td align="right" style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; padding:6px 0; border-bottom:1px solid #1a1a17;">Change</td>
+                </tr>
+                {% for m in movers_down %}
+                <tr>
+                  <td {% if not loop.last %}class="rule" {% endif %}style="font-family:Georgia,serif; font-size:15px; color:#1a1a17; font-weight:bold; padding:11px 0;{% if not loop.last %} border-bottom:1px solid #e4dfd0;{% endif %}">{{ m.symbol }}</td>
+                  <td {% if not loop.last %}class="rule" {% endif %}style="font-family:Georgia,serif; font-size:13px; color:#6b6657; padding:11px 12px 11px 0;{% if not loop.last %} border-bottom:1px solid #e4dfd0;{% endif %}" class="hide-sm">{{ m.name }}</td>
+                  <td {% if not loop.last %}class="rule" {% endif %}align="right" style="font-family:Georgia,serif; font-size:15px; color:#1a1a17; padding:11px 0;{% if not loop.last %} border-bottom:1px solid #e4dfd0;{% endif %}">{{ m.last_price }}</td>
+                  <td {% if not loop.last %}class="rule" {% endif %}align="right" style="font-family:Georgia,serif; font-size:15px; color:{{ m.pct_color }}; font-weight:bold; padding:11px 0;{% if not loop.last %} border-bottom:1px solid #e4dfd0;{% endif %}">{{ m.pct_arrow }} {{ m.pct_change_text }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+          {% endif %}
+
+          {% if has_forecast %}
+          <!-- ====== WEEK AHEAD · KRONOS FORECAST ====== -->
+          <tr>
+            <td class="px" style="padding:14px 40px 8px 40px; background-color:#1a1a17;">
+              <div style="font-family:Georgia,serif; font-size:12px; letter-spacing:3px; text-transform:uppercase; color:#d8b56a; font-weight:bold;">Week Ahead &middot; Kronos Forecast</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="px" style="padding:12px 40px 2px 40px;">
+              <div class="ink-soft" style="font-family:Georgia,serif; font-size:12px; font-style:italic; color:#8a8474; line-height:1.5;">
+                {% if forecast_samples %}{{ forecast_samples }}-path {% endif %}model forecast{% if forecast_asof %} as of {{ forecast_asof }}{% endif %} &middot; {{ forecasts[0].horizon }}-trading-day horizon
+              </div>
+            </td>
+          </tr>
+          {% for f in forecasts %}
+          <tr>
+            <td class="px" style="padding:18px 40px; border-bottom:{% if loop.last %}2px solid #1a1a17{% else %}1px solid #e4dfd0{% endif %};">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td valign="top">
+                    <div class="sym-cell ink" style="font-family:Georgia,serif; font-size:21px; color:#1a1a17; font-weight:bold; letter-spacing:0.5px;">{{ f.symbol }}</div>
+                    <div class="ink-soft" style="font-family:Georgia,serif; font-size:12px; color:#6b6657; padding-top:3px;">{{ f.horizon }}-day target &middot; last {{ f.last_price }}</div>
+                  </td>
+                  <td valign="top" align="right" width="200">
+                    <div class="price-lg ink" style="font-family:Georgia,serif; font-size:26px; color:#1a1a17; font-weight:bold;">{{ f.target_price }}</div>
+                    <div style="font-family:Georgia,serif; font-size:16px; color:{{ f.pct_color }}; font-weight:bold; padding-top:3px;">{{ f.pct_arrow }} {{ f.pct_change_text }}</div>
+                    <div class="ink-soft" style="font-family:Georgia,serif; font-size:12px; color:#6b6657; padding-top:6px;">band {{ f.band_text }}</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          {% endfor %}
+          <tr>
+            <td class="px" style="padding:10px 40px 0 40px;">
+              <div class="ink-soft" style="font-family:Georgia,serif; font-size:11px; font-style:italic; color:#8a8474; line-height:1.5;">
+                p50 target with p10&ndash;p90 band from the Kronos model &mdash; a forecast, not advice.
+              </div>
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- ====== FULL WATCHLIST HEADER ====== -->
+          <tr>
+            <td class="px" style="padding:24px 40px 10px 40px;">
+              <div class="ink" style="font-family:Georgia,serif; font-size:12px; letter-spacing:3px; text-transform:uppercase; color:#1a1a17; font-weight:bold;">Full Watchlist</div>
+            </td>
+          </tr>
+
+          <!-- ====== QUOTE TABLE ====== -->
+          <tr>
+            <td class="px" style="padding:0 40px 8px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; padding:6px 0; border-bottom:1px solid #1a1a17;">Symbol</td>
+                  <td align="right" style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; padding:6px 0; border-bottom:1px solid #1a1a17;" class="hide-sm">Held</td>
+                  <td align="right" style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; padding:6px 0; border-bottom:1px solid #1a1a17;">Last</td>
+                  <td align="right" style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; padding:6px 0; border-bottom:1px solid #1a1a17;">Change</td>
+                </tr>
+                {% for row in all_rows %}
+                <tr>
+                  <td {% if not loop.last %}class="rule" {% endif %}style="font-family:Georgia,serif; font-size:15px; color:#1a1a17; font-weight:bold; padding:11px 0;{% if not loop.last %} border-bottom:1px solid #e4dfd0;{% endif %}">{{ row.symbol }}</td>
+                  <td {% if not loop.last %}class="rule" {% endif %}align="right" style="font-family:Georgia,serif; font-size:13px; color:#6b6657; padding:11px 0;{% if not loop.last %} border-bottom:1px solid #e4dfd0;{% endif %}" class="hide-sm">{{ row.held_shares }}</td>
+                  <td {% if not loop.last %}class="rule" {% endif %}align="right" style="font-family:Georgia,serif; font-size:15px; color:#1a1a17; padding:11px 0;{% if not loop.last %} border-bottom:1px solid #e4dfd0;{% endif %}">{{ row.last_price }}</td>
+                  <td {% if not loop.last %}class="rule" {% endif %}align="right" style="font-family:Georgia,serif; font-size:15px; color:{{ row.pct_color }}; font-weight:bold; padding:11px 0;{% if not loop.last %} border-bottom:1px solid #e4dfd0;{% endif %}">{{ row.pct_change_text }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+            </td>
+          </tr>
+
+          <!-- ====== DATA NOTE ====== -->
+          <tr>
+            <td class="px" style="padding:14px 40px 4px 40px;">
+              <div class="ink-soft" style="font-family:Georgia,serif; font-size:12px; font-style:italic; color:#8a8474; line-height:1.5;">
+                Closing quotes as of 4:00 PM ET. Alerts trigger on moves of &plusmn;{{ "%.1f"|format(pct_change_threshold) }}% or prices within {{ "%.1f"|format(near_52w_pct) }}% of a 52-week high or low.
+              </div>
+            </td>
+          </tr>
+
+          <!-- ====== FOOTER ====== -->
+          <tr>
+            <td class="px" style="padding:22px 40px 30px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="border-top:1px solid #d6d1c2; padding-top:18px;">
+                    <div class="ink-soft" style="font-family:Georgia,serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9a9484; line-height:1.6;">
+                      Schwab Watchlist Alerts &middot; Automated Digest<br>
+                      <span style="color:#b4afa0;">Not investment advice. For personal use only.</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+        <!-- ============ /CARD ============ -->
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

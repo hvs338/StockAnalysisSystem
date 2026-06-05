@@ -1,0 +1,86 @@
+# The watchlist the digest evaluates each day.
+#
+# Schwab did NOT carry watchlists over from the TD Ameritrade API, so there is no
+# Schwab endpoint to pull them from (the old /watchlists path returns 404). This
+# file IS the watchlist — edit it to mirror whatever you track in the Schwab app.
+#
+# YAML note: each entry MUST be "- SYMBOL" (dash, then a space). "-SYMBOL" without
+# the space is NOT a list item and silently breaks parsing.
+symbols:
+  - PLL
+  - IONR
+  - TSLA
+  - UBER
+  - PERI
+  - RDDT
+  - RGA
+  - SHOP
+  - RIVN
+  - GME
+  - RKLB
+  - IONQ
+  - DKNG
+  - VRT
+  - TQQQ
+  - MARA
+  - MU
+  - CABA
+  - MRVL
+  - NKE
+  - OKLO
+  - TGT
+  - DPZ
+  - MDB
+  - SLDP
+  - CLNE
+  - FLGT
+  - CRWV
+  - FIG
+  - OPEN
+  - RVPH
+  - NTLA
+  - APLD
+  - BYND
+  - ET
+  - IREN
+  - SSYS
+  - GRAB
+  - DEFT
+  - MRNA
+  - JOBY
+  - ASST
+  - WULF
+  - QS
+  - IREN
+  - LMND
+  - BULL
+  - ZETA
+  - HIMS
+  - HIVE
+  - QUBT
+  - YDKG
+  - RZLV
+  - NBIS
+  - NVTS
+  - CRWV
+  - SOFI
+  - NXXT
+  - XRPC
+  - EXPE
+  - WHR
+  - BE
+  - CRCL
+  - BBAI
+  - SNPS
+  - NFLX
+  - AMZN
+  - BTBD
+  - RVI
+  - ANET
+  - NOW
+  - OUST
+  - CRDO
+  - HLIT
+  - TE
+  - CLSK
+  - HOOD
