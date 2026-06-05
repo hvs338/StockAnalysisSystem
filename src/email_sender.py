@@ -1,4 +1,5 @@
 import json
+import re
 import smtplib
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
@@ -6,6 +7,7 @@ from email.mime.text import MIMEText
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import escape
 
 import config as config
 
@@ -263,6 +265,29 @@ def _forecast_asof_text(generated_at):
     return f"{dt.strftime('%b')} {dt.day}"
 
 
+def _render_report_html(text: str) -> str:
+    """Render the AI analyst's markdown-ish report as email-safe HTML.
+
+    The text is model output, so escape it first (neutralizes any HTML/injection), then re-apply
+    only **bold** and line breaks. Nothing the model emits can inject markup.
+    """
+    rendered = []
+    for raw in text.split("\n"):
+        line = str(escape(raw))
+        line = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", line)
+        rendered.append(line)
+    return "<br>".join(rendered)
+
+
+def _build_analysis_context(analysis: dict) -> dict:
+    return {
+        "symbol": analysis.get("symbol", ""),
+        "name": analysis.get("name") or analysis.get("symbol", ""),
+        "report_html": _render_report_html(analysis["report"]) if analysis.get("report") else None,
+        "error": analysis.get("error"),
+    }
+
+
 def _flagged_sort_key(row):
     """Order flagged rows by alert severity, then symbol alphabetically.
 
@@ -289,6 +314,8 @@ def build_digest_html(
     movers_index_label: str = "",
     forecasts: list[dict] | None = None,
     forecast_meta: dict | None = None,
+    analyses: list[dict] | None = None,
+    analysis_model: str = "",
 ) -> str:
     env = _jinja_env()
     template = env.get_template(DIGEST_TEMPLATE)
@@ -309,6 +336,8 @@ def build_digest_html(
 
     forecast_ctx = [_build_forecast_context(r) for r in (forecasts or [])]
     meta = forecast_meta or {}
+
+    analysis_ctx = [_build_analysis_context(a) for a in (analyses or [])]
 
     now = datetime.now()
     date_full = f"{now.strftime('%B')} {now.day}, {now.year}"
@@ -335,6 +364,9 @@ def build_digest_html(
         has_forecast=bool(forecast_ctx),
         forecast_asof=_forecast_asof_text(meta.get("generated_at")),
         forecast_samples=meta.get("n_samples"),
+        analyses=analysis_ctx,
+        has_analysis=bool(analysis_ctx),
+        analysis_model=analysis_model,
         pct_change_threshold=config.PCT_CHANGE_ALERT,
         near_52w_pct=config.NEAR_52W_HIGH_PCT,
     )
@@ -345,6 +377,7 @@ def build_digest_text(
     movers_up: list[dict] | None = None,
     movers_down: list[dict] | None = None,
     forecasts: list[dict] | None = None,
+    analyses: list[dict] | None = None,
 ) -> str:
     lines = [
         f"The Daily Run — {datetime.now().strftime('%Y-%m-%d')}",
@@ -381,6 +414,13 @@ def build_digest_text(
                 f"{ctx['symbol']:<8} {ctx['last_price']:>10} -> {ctx['target_price']:>10}  "
                 f"{ctx['pct_change_text']:>8}   band {ctx['band_text']}"
             )
+
+    if analyses:
+        lines.extend(["", "AI Analysis", "=" * 40])
+        for a in analyses:
+            header = f"{a.get('symbol', '')} — {a.get('name') or a.get('symbol', '')}"
+            lines.extend(["", header, "-" * len(header)])
+            lines.append(a.get("report") or f"(analysis unavailable: {a.get('error', 'unknown error')})")
 
     return "\n".join(lines)
 

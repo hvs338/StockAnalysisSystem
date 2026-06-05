@@ -38,6 +38,13 @@ def _merge_positions_into_rows(rows: list[dict], positions: dict[str, dict]) -> 
         row["position"] = positions.get(row["symbol"])
 
 
+def _top_mover_symbols(rows: list[dict], n: int) -> list[str]:
+    """Top-N watchlist symbols by |pct_change| — the AI-analysis fallback when no forecasts exist."""
+    scored = [(abs(r["pct_change"]), r["symbol"]) for r in rows if r.get("pct_change") is not None]
+    scored.sort(reverse=True)
+    return [sym for _, sym in scored[:n]]
+
+
 def cmd_auth() -> None:
     auth.run_auth_flow()
 
@@ -73,6 +80,19 @@ def cmd_run(dry_run: bool) -> None:
         forecasts, forecast_meta = email_sender.load_forecasts()
         log.info(f"Loaded {len(forecasts)} Kronos forecast(s) for the digest.")
 
+    analyses: list[dict] = []
+    if config.ENABLE_ANALYSIS:
+        # AI analyst (Bedrock) on the top movers that have forecasts. One Bedrock call each, so
+        # gated behind ENABLE_ANALYSIS. Imported lazily so the default digest never loads boto3.
+        import stock_analysis
+        analysis_symbols = (
+            [r["symbol"] for r in forecasts]
+            or _top_mover_symbols(rows, config.ANALYSIS_COUNT)
+        )[: config.ANALYSIS_COUNT]
+        if analysis_symbols:
+            log.info(f"Running AI analysis on: {', '.join(analysis_symbols)}")
+            analyses = stock_analysis.analyze_symbols(client, analysis_symbols)
+
     html = email_sender.build_digest_html(
         rows,
         movers_up=movers_up,
@@ -80,9 +100,12 @@ def cmd_run(dry_run: bool) -> None:
         movers_index_label=config.MOVERS_INDEX,
         forecasts=forecasts,
         forecast_meta=forecast_meta,
+        analyses=analyses,
+        analysis_model=config.BEDROCK_MODEL,
     )
     text = email_sender.build_digest_text(
-        rows, movers_up=movers_up, movers_down=movers_down, forecasts=forecasts
+        rows, movers_up=movers_up, movers_down=movers_down, forecasts=forecasts,
+        analyses=analyses,
     )
     subject = f"Schwab Watchlist — {flagged} flagged today"
 

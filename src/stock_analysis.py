@@ -28,10 +28,6 @@ import schwab_client
 
 log = logging.getLogger("stock_analysis")
 
-# Bedrock speaks the Anthropic Messages API with this version tag in the body (the model is
-# selected by modelId on the call, not in the body).
-_BEDROCK_ANTHROPIC_VERSION = "bedrock-2023-05-31"
-
 SYSTEM_PROMPT = """You are a disciplined equity and options analyst. Your job is to synthesize three inputs into a single, well-reasoned weekly outlook for one stock, then commit to a grade, a directional verdict, and a set of defined-risk options plays.
 
 Inputs you will receive each run:
@@ -185,34 +181,23 @@ class BedrockClient:
         return self._client
 
     def invoke(self, user_text: str) -> str:
-        """Single-shot completion. cache_control marks the (stable) system prompt for prompt
-        caching on supported models; harmless if the prefix is below the cache minimum."""
-        body = {
-            "anthropic_version": _BEDROCK_ANTHROPIC_VERSION,
-            "max_tokens": self.max_tokens,
-            "system": [
-                {"type": "text", "text": self.system_prompt,
-                 "cache_control": {"type": "ephemeral"}},
-            ],
-            "messages": [{"role": "user", "content": [{"type": "text", "text": user_text}]}],
-        }
+        """Single-shot completion via the model-agnostic Converse API, so the same code path
+        works across Bedrock models (Claude, Amazon Nova, …) — only the modelId changes."""
         try:
-            resp = self.client.invoke_model(
+            resp = self.client.converse(
                 modelId=self.model_id,
-                body=json.dumps(body),
-                contentType="application/json",
-                accept="application/json",
+                system=[{"text": self.system_prompt}],
+                messages=[{"role": "user", "content": [{"text": user_text}]}],
+                inferenceConfig={"maxTokens": self.max_tokens},
             )
         except (BotoCoreError, ClientError) as e:
             raise RuntimeError(
-                f"Bedrock invoke failed ({type(e).__name__}: {e}). Check that AWS credentials "
+                f"Bedrock Converse failed ({type(e).__name__}: {e}). Check that AWS credentials "
                 f"are configured and that model access for {self.model_id!r} is enabled in "
                 f"{self.region}."
             ) from e
-        payload = json.loads(resp["body"].read())
-        return "".join(
-            b.get("text", "") for b in payload.get("content", []) if b.get("type") == "text"
-        )
+        blocks = resp["output"]["message"]["content"]
+        return "".join(b.get("text", "") for b in blocks if "text" in b)
 
     def analyze(self, user_text: str) -> str:
         return self.invoke(user_text)
@@ -232,6 +217,32 @@ def gather_inputs(client, symbol: str, news: str = "") -> dict:
         "kronos_forecast": load_kronos_forecast(symbol),
         "news": news,
     }
+
+
+def analyze_symbols(client, symbols: list[str], max_tokens: int | None = None) -> list[dict]:
+    """Run the Bedrock analyst for each symbol; reuses one client. Per-symbol failures degrade
+    gracefully (recorded as `error`) so one bad ticker never sinks the digest.
+
+    Returns ``[{symbol, name, report}]`` (or ``{symbol, error}`` on failure).
+    """
+    analyst = BedrockClient(max_tokens=max_tokens)
+    results: list[dict] = []
+    for symbol in symbols:
+        rec: dict = {"symbol": symbol}
+        try:
+            inputs = gather_inputs(client, symbol)
+            rec["name"] = inputs["name"]
+            user_text = build_user_prompt(
+                inputs["symbol"], inputs["name"], inputs["current_price"], inputs["as_of"],
+                inputs["kronos_forecast"], inputs["historical"], inputs["news"],
+            )
+            rec["report"] = analyst.analyze(user_text)
+            log.info(f"Analyzed {symbol} via {analyst.model_id}.")
+        except Exception as e:  # one bad ticker shouldn't sink the batch
+            log.warning(f"Analysis failed for {symbol}: {type(e).__name__}: {e}")
+            rec["error"] = f"{type(e).__name__}: {e}"
+        results.append(rec)
+    return results
 
 
 def main() -> None:
