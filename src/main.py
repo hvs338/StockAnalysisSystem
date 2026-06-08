@@ -39,7 +39,7 @@ def _merge_positions_into_rows(rows: list[dict], positions: dict[str, dict]) -> 
 
 
 def _top_mover_symbols(rows: list[dict], n: int) -> list[str]:
-    """Top-N watchlist symbols by |pct_change| — the AI-analysis fallback when no forecasts exist."""
+    """Top-N watchlist symbols by |pct_change| — the day's biggest movers, which the AI analyst runs on."""
     scored = [(abs(r["pct_change"]), r["symbol"]) for r in rows if r.get("pct_change") is not None]
     scored.sort(reverse=True)
     return [sym for _, sym in scored[:n]]
@@ -85,10 +85,10 @@ def cmd_run(dry_run: bool) -> None:
         # AI analyst (Bedrock) on the top movers that have forecasts. One Bedrock call each, so
         # gated behind ENABLE_ANALYSIS. Imported lazily so the default digest never loads boto3.
         import stock_analysis
-        analysis_symbols = (
-            [r["symbol"] for r in forecasts]
-            or _top_mover_symbols(rows, config.ANALYSIS_COUNT)
-        )[: config.ANALYSIS_COUNT]
+        # Analyze the day's biggest movers (by |% change|), recomputed each run so the section
+        # tracks what actually moved today. Kronos context is included per-symbol when a forecast
+        # file exists for it (load_kronos_forecast degrades gracefully when it doesn't).
+        analysis_symbols = _top_mover_symbols(rows, config.ANALYSIS_COUNT)
         if analysis_symbols:
             log.info(f"Running AI analysis on: {', '.join(analysis_symbols)}")
             analyses = stock_analysis.analyze_symbols(client, analysis_symbols)
@@ -112,7 +112,12 @@ def cmd_run(dry_run: bool) -> None:
     if dry_run:
         print(text)
         print()
+        # Also write the HTML to a gitignored preview file so the rendered digest (analysis
+        # formatting, layout) can be eyeballed in a browser without sending an email.
+        preview_path = config.PROJECT_ROOT / "rendered_preview.html"
+        preview_path.write_text(html, encoding="utf-8")
         print(f"(dry-run: would send subject '{subject}' to {config.DIGEST_TO})")
+        print(f"(dry-run: wrote HTML preview to {preview_path})")
         return
 
     email_sender.send_digest(html, text, subject)

@@ -75,9 +75,9 @@ BEDROCK_MODEL = os.environ.get("BEDROCK_MODEL", "us.amazon.nova-pro-v1:0")
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 ENABLE_ANALYSIS = _env_bool("ENABLE_ANALYSIS", "0")
 ANALYSIS_MAX_TOKENS = int(os.environ.get("ANALYSIS_MAX_TOKENS", "4096"))
-# How many of the top movers (with forecasts) to run the AI analyst on in the digest. Each is
-# one Bedrock call — keep small to bound cost/latency.
-ANALYSIS_COUNT = int(os.environ.get("ANALYSIS_COUNT", "3"))
+# How many of the day's top movers to run the AI analyst on in the digest. Each is one Bedrock
+# call — keep small to bound cost/latency.
+ANALYSIS_COUNT = int(os.environ.get("ANALYSIS_COUNT", "5"))
 
 
 def require_schwab_creds() -> None:

@@ -265,18 +265,51 @@ def _forecast_asof_text(generated_at):
     return f"{dt.strftime('%b')} {dt.day}"
 
 
-def _render_report_html(text: str) -> str:
-    """Render the AI analyst's markdown-ish report as email-safe HTML.
+# Inline styles for the rendered analyst report, tuned to the digest's Georgia aesthetic. The
+# surrounding template div already sets font-family/size/color/line-height, so these only add
+# structure and emphasis. Headers reuse the digest's gold uppercase section-label look.
+_MD_HEADING = ("font-family:Georgia,serif; font-size:12px; letter-spacing:2px;"
+               " text-transform:uppercase; color:#9a7b3f; font-weight:bold; margin:14px 0 4px 0;")
+_MD_P = "margin:7px 0;"
+_MD_UL = "margin:6px 0; padding-left:20px;"
+_MD_OL = "margin:6px 0; padding-left:22px;"
+_MD_LI = "margin:3px 0;"
+_MD_HR = "border:0; border-top:1px solid #e4dfd0; margin:14px 0;"
+_MD_CODE = "font-family:Consolas,'Courier New',monospace; font-size:12px; background:#f2efe6; padding:1px 4px;"
 
-    The text is model output, so escape it first (neutralizes any HTML/injection), then re-apply
-    only **bold** and line breaks. Nothing the model emits can inject markup.
+
+def _style_report_tags(html: str) -> str:
+    """Add inline styles to the parser's output tags so the report renders consistently in email
+    clients (which ignore <style>/classes). Heading levels are flattened to one styled look."""
+    html = re.sub(r"<h[1-6]>", f'<h3 style="{_MD_HEADING}">', html)
+    html = re.sub(r"</h[1-6]>", "</h3>", html)
+    html = re.sub(r"<hr\s*/?>", f'<hr style="{_MD_HR}">', html)
+    html = html.replace("<p>", f'<p style="{_MD_P}">')
+    html = html.replace("<ul>", f'<ul style="{_MD_UL}">')
+    html = html.replace("<ol>", f'<ol style="{_MD_OL}">')
+    html = html.replace("<li>", f'<li style="{_MD_LI}">')
+    html = html.replace("<code>", f'<code style="{_MD_CODE}">')
+    return html
+
+
+def _render_report_html(text: str) -> str:
+    """Render the AI analyst's markdown report as email-safe, styled HTML.
+
+    Parses with CommonMark (markdown-it-py) so headers, nested bullet/numbered lists, rules, and
+    inline emphasis all render properly. Raw HTML is disabled, so anything the model emits is
+    escaped — it can't inject markup. Falls back to a minimal bold/line-break renderer if the
+    parser isn't installed.
     """
-    rendered = []
-    for raw in text.split("\n"):
-        line = str(escape(raw))
-        line = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", line)
-        rendered.append(line)
-    return "<br>".join(rendered)
+    try:
+        from markdown_it import MarkdownIt
+    except ImportError:
+        rendered = [re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", str(escape(raw)))
+                    for raw in text.split("\n")]
+        return "<br>".join(rendered)
+
+    # html=False → raw HTML in the model output is escaped, not passed through.
+    md = MarkdownIt("commonmark", {"html": False})
+    return _style_report_tags(md.render(text))
 
 
 def _build_analysis_context(analysis: dict) -> dict:
