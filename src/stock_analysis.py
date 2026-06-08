@@ -24,6 +24,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 import alert_rules
 import auth
 import config
+import news_client
 import schwab_client
 
 log = logging.getLogger("stock_analysis")
@@ -206,8 +207,21 @@ class BedrockClient:
 # --------------------------------------------------------------------------- orchestration
 
 def gather_inputs(client, symbol: str, news: str = "") -> dict:
-    """Pull the current price, history, and Kronos forecast for one symbol."""
+    """Pull the current price, history, Kronos forecast, and recent news for one symbol.
+
+    `news_items` is the structured source list (for the email); `news` is the formatted text fed
+    to the prompt's NEWS slot. An explicit `news` arg (CLI --news/--news-file) overrides the
+    Finnhub fetch; otherwise news is fetched when ENABLE_NEWS is on (and degrades to none on error).
+    """
     fields = get_quote_fields(client, symbol)
+    news_items: list[dict] = []
+    if news:
+        news_text = news
+    elif config.ENABLE_NEWS:
+        news_items = news_client.fetch_news(symbol)
+        news_text = news_client.format_for_prompt(news_items)
+    else:
+        news_text = ""
     return {
         "symbol": symbol,
         "name": fields.get("name", ""),
@@ -215,7 +229,8 @@ def gather_inputs(client, symbol: str, news: str = "") -> dict:
         "as_of": date.today().isoformat(),
         "historical": build_historical_summary(client, symbol),
         "kronos_forecast": load_kronos_forecast(symbol),
-        "news": news,
+        "news": news_text,
+        "news_items": news_items,
     }
 
 
@@ -232,6 +247,7 @@ def analyze_symbols(client, symbols: list[str], max_tokens: int | None = None) -
         try:
             inputs = gather_inputs(client, symbol)
             rec["name"] = inputs["name"]
+            rec["news_items"] = inputs["news_items"]
             user_text = build_user_prompt(
                 inputs["symbol"], inputs["name"], inputs["current_price"], inputs["as_of"],
                 inputs["kronos_forecast"], inputs["historical"], inputs["news"],

@@ -261,6 +261,16 @@
               {% else %}
               <div class="ink-soft" style="font-family:Georgia,serif; font-size:13px; color:#8a8474; font-style:italic; padding-top:8px;">Analysis unavailable{% if a.error %} ({{ a.error }}){% endif %}.</div>
               {% endif %}
+              {% if a.news %}
+              <div style="padding-top:12px;">
+                <div style="font-family:Georgia,serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#9a7b3f; font-weight:bold; padding-bottom:4px;">Sources</div>
+                {% for n in a.news %}
+                <div style="font-family:Georgia,serif; font-size:12px; line-height:1.5; padding:2px 0;">
+                  <a href="{{ n.url }}" style="color:#1a1a17; text-decoration:underline;">{{ n.title }}</a><span class="ink-soft" style="color:#8a8474;"> &middot; {{ n.source }}{% if n.published %} &middot; {{ n.published }}{% endif %}</span>
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}

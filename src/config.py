@@ -79,6 +79,19 @@ ANALYSIS_MAX_TOKENS = int(os.environ.get("ANALYSIS_MAX_TOKENS", "4096"))
 # call — keep small to bound cost/latency.
 ANALYSIS_COUNT = int(os.environ.get("ANALYSIS_COUNT", "5"))
 
+# Per-stock news fed into the analyst's prompt (news_client.py → Finnhub company-news API).
+# ENABLE_NEWS no-ops gracefully when FINNHUB_API_KEY is unset. Preferred sources are ranked first
+# (case-insensitive substring match), everything else after, then by recency.
+FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "")
+ENABLE_NEWS = _env_bool("ENABLE_NEWS", "1")
+NEWS_LOOKBACK_DAYS = int(os.environ.get("NEWS_LOOKBACK_DAYS", "5"))
+NEWS_MAX_ITEMS = int(os.environ.get("NEWS_MAX_ITEMS", "6"))
+NEWS_PREFERRED_SOURCES = [
+    s.strip() for s in os.environ.get(
+        "NEWS_PREFERRED_SOURCES", "Yahoo,MarketWatch,Reuters,Barron,CNBC"
+    ).split(",") if s.strip()
+]
+
 
 def require_schwab_creds() -> None:
     missing = [

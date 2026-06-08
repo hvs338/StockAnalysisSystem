@@ -317,6 +317,16 @@ def _build_analysis_context(analysis: dict) -> dict:
         "symbol": analysis.get("symbol", ""),
         "name": analysis.get("name") or analysis.get("symbol", ""),
         "report_html": _render_report_html(analysis["report"]) if analysis.get("report") else None,
+        "news": [
+            {
+                "title": n.get("title", ""),
+                "source": n.get("source", ""),
+                "url": n.get("url", ""),
+                "published": n.get("published", ""),
+            }
+            for n in (analysis.get("news_items") or [])
+            if n.get("title") and n.get("url")
+        ],
         "error": analysis.get("error"),
     }
 
@@ -454,6 +464,15 @@ def build_digest_text(
             header = f"{a.get('symbol', '')} — {a.get('name') or a.get('symbol', '')}"
             lines.extend(["", header, "-" * len(header)])
             lines.append(a.get("report") or f"(analysis unavailable: {a.get('error', 'unknown error')})")
+            news_items = a.get("news_items") or []
+            if news_items:
+                lines.append("")
+                lines.append("Sources:")
+                for n in news_items:
+                    meta = " · ".join(p for p in (n.get("source", ""), n.get("published", "")) if p)
+                    lines.append(f"  - {n.get('title', '')}" + (f"  ({meta})" if meta else ""))
+                    if n.get("url"):
+                        lines.append(f"    {n['url']}")
 
     return "\n".join(lines)
 

@@ -4,3 +4,4 @@ pyyaml>=6.0
 jinja2>=3.1
 boto3>=1.34  # Claude on Amazon Bedrock for the AI analysis layer (stock_analysis.py)
 markdown-it-py>=3.0  # render the analyst's markdown report into email-safe HTML (email_sender.py)
+httpx>=0.27  # Finnhub company-news fetch (news_client.py); also a schwab-py dependency
