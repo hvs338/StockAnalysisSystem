@@ -17,7 +17,6 @@ Heavy deps (torch, Kronos, matplotlib) are imported lazily so --data-only stays 
 import argparse
 import logging
 import sys
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -61,9 +60,10 @@ def load_kronos_predictor(
     An explicit ``model_name`` arg or a non-auto KRONOS_MODEL overrides the auto pick.
     Imported lazily so the --data-only path doesn't require torch.
     """
-    # Ensure both the repo root AND the vendored Kronos/ dir are importable: the package's
-    # internal `from model.module import *` needs Kronos/ itself on sys.path.
-    root = Path(__file__).resolve().parent
+    # The vendored Kronos package lives at <repo root>/Kronos, so the repo root must be on
+    # sys.path for `from Kronos.model import ...` to resolve. (Use config.PROJECT_ROOT, not this
+    # file's parent — the scripts live in src/, so the parent is src/, not the repo root.)
+    root = config.PROJECT_ROOT
     for p in (str(root), str(root / "Kronos")):
         if p not in sys.path:
             sys.path.insert(0, p)

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(*kronos_runner.py*)",
+      "PowerShell(*src\\main.py*)"
+    ]
+  }
+}
