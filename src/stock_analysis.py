@@ -7,8 +7,9 @@ Run one symbol (needs AWS creds + Bedrock model access):
 Build the prompt without calling Bedrock (no AWS needed — useful for iterating on inputs):
     python src/stock_analysis.py --symbol MU --dry-run
 
-Bedrock model IDs carry an "anthropic." prefix (config.BEDROCK_MODEL, default
-anthropic.claude-opus-4-8). News is an optional slot — the dedicated news pull is a later
+Bedrock model IDs use a cross-region inference-profile id (config.BEDROCK_MODEL, default
+us.anthropic.claude-sonnet-4-6), with automatic retry + fallback to config.BEDROCK_FALLBACK_MODEL
+on transient Bedrock errors. News is an optional slot — the dedicated news pull is a later
 roadmap step, so it defaults to "none provided" and the prompt handles its absence.
 """
 
@@ -16,6 +17,7 @@ import argparse
 import json
 import logging
 import sys
+import time
 from datetime import date, datetime, timezone
 
 import boto3
@@ -28,6 +30,21 @@ import news_client
 import schwab_client
 
 log = logging.getLogger("stock_analysis")
+
+# Bedrock occasionally fails a request with a transient server-side error — and, confusingly,
+# sometimes reports it as an AccessDeniedException carrying a "try your request again" message
+# rather than a 5xx. These, plus the usual throttle/timeout/5xx codes, are worth retrying.
+_RETRYABLE_CODES = {
+    "ThrottlingException", "ModelTimeoutException", "ServiceUnavailableException",
+    "InternalServerException", "ModelNotReadyException",
+}
+_TRANSIENT_MSG = "try your request again"
+
+
+def _is_retryable(err: ClientError) -> bool:
+    """True if a Bedrock ClientError looks transient (worth retrying the same model)."""
+    e = getattr(err, "response", {}).get("Error", {})
+    return e.get("Code", "") in _RETRYABLE_CODES or _TRANSIENT_MSG in e.get("Message", "").lower()
 
 SYSTEM_PROMPT = """You are a disciplined equity and options analyst. Your job is to synthesize three inputs into a single, well-reasoned weekly outlook for one stock, then commit to a grade, a directional verdict, and a set of defined-risk options plays.
 
@@ -167,11 +184,19 @@ class BedrockClient:
     """Thin wrapper over the Bedrock runtime for the stock-analysis system prompt."""
 
     def __init__(self, model_id: str | None = None, region: str | None = None,
-                 max_tokens: int | None = None):
+                 max_tokens: int | None = None, fallback_model_id: str | None = None,
+                 max_retries: int | None = None):
         self.model_id = model_id or config.BEDROCK_MODEL
         self.region = region or config.AWS_REGION
         self.max_tokens = max_tokens or config.ANALYSIS_MAX_TOKENS
+        self.fallback_model_id = (
+            fallback_model_id if fallback_model_id is not None else config.BEDROCK_FALLBACK_MODEL
+        )
+        self.max_retries = config.BEDROCK_MAX_RETRIES if max_retries is None else max_retries
         self.system_prompt = SYSTEM_PROMPT
+        # Which model actually produced the most recent response — equals model_id normally, or
+        # fallback_model_id after a fallback — so callers can log/label the true source.
+        self.last_model_used = self.model_id
         # Lazily created so --dry-run and imports don't require AWS creds.
         self._client = None
 
@@ -181,24 +206,66 @@ class BedrockClient:
             self._client = boto3.client("bedrock-runtime", region_name=self.region)
         return self._client
 
-    def invoke(self, user_text: str) -> str:
-        """Single-shot completion via the model-agnostic Converse API, so the same code path
-        works across Bedrock models (Claude, Amazon Nova, …) — only the modelId changes."""
-        try:
-            resp = self.client.converse(
-                modelId=self.model_id,
-                system=[{"text": self.system_prompt}],
-                messages=[{"role": "user", "content": [{"text": user_text}]}],
-                inferenceConfig={"maxTokens": self.max_tokens},
-            )
-        except (BotoCoreError, ClientError) as e:
-            raise RuntimeError(
-                f"Bedrock Converse failed ({type(e).__name__}: {e}). Check that AWS credentials "
-                f"are configured and that model access for {self.model_id!r} is enabled in "
-                f"{self.region}."
-            ) from e
+    def _converse(self, model_id: str, user_text: str) -> str:
+        """One Converse call to a specific model; returns its concatenated text blocks. The
+        Converse API is model-agnostic, so the same path works for Claude, Amazon Nova, etc."""
+        resp = self.client.converse(
+            modelId=model_id,
+            system=[{"text": self.system_prompt}],
+            messages=[{"role": "user", "content": [{"text": user_text}]}],
+            inferenceConfig={"maxTokens": self.max_tokens},
+        )
         blocks = resp["output"]["message"]["content"]
         return "".join(b.get("text", "") for b in blocks if "text" in b)
+
+    def _invoke_with_retries(self, model_id: str, user_text: str) -> str:
+        """Call one model, retrying transient Bedrock failures with exponential backoff
+        (1s, 2s, 4s, capped at 8s). Non-transient errors raise immediately."""
+        for attempt in range(self.max_retries + 1):
+            try:
+                return self._converse(model_id, user_text)
+            except (BotoCoreError, ClientError) as e:
+                retryable = isinstance(e, BotoCoreError) or _is_retryable(e)
+                if attempt < self.max_retries and retryable:
+                    delay = min(2 ** attempt, 8)
+                    code = (e.response.get("Error", {}).get("Code")
+                            if isinstance(e, ClientError) else type(e).__name__)
+                    log.warning(f"Bedrock {model_id} transient error ({code}); "
+                                f"retry {attempt + 1}/{self.max_retries} in {delay}s.")
+                    time.sleep(delay)
+                    continue
+                raise
+
+    def invoke(self, user_text: str) -> str:
+        """Single-shot completion via the Converse API. Retries transient Bedrock failures on the
+        primary model, then falls back to BEDROCK_FALLBACK_MODEL — so a Bedrock-side outage on one
+        model (e.g. the Anthropic models' intermittent "try again" errors) doesn't blank the
+        unattended digest's analysis."""
+        try:
+            text = self._invoke_with_retries(self.model_id, user_text)
+            self.last_model_used = self.model_id
+            return text
+        except (BotoCoreError, ClientError) as primary_err:
+            fallback = self.fallback_model_id
+            if fallback and fallback != self.model_id:
+                log.warning(f"Primary model {self.model_id} failed "
+                            f"({type(primary_err).__name__}: {primary_err}); "
+                            f"falling back to {fallback}.")
+                try:
+                    text = self._invoke_with_retries(fallback, user_text)
+                    self.last_model_used = fallback
+                    return text
+                except (BotoCoreError, ClientError) as fb_err:
+                    raise RuntimeError(
+                        f"Bedrock Converse failed on both primary {self.model_id!r} and fallback "
+                        f"{fallback!r} in {self.region} ({type(fb_err).__name__}: {fb_err}). Check "
+                        f"AWS credentials and model access."
+                    ) from fb_err
+            raise RuntimeError(
+                f"Bedrock Converse failed ({type(primary_err).__name__}: {primary_err}). Check that "
+                f"AWS credentials are configured and that model access for {self.model_id!r} is "
+                f"enabled in {self.region}."
+            ) from primary_err
 
     def analyze(self, user_text: str) -> str:
         return self.invoke(user_text)
@@ -253,7 +320,8 @@ def analyze_symbols(client, symbols: list[str], max_tokens: int | None = None) -
                 inputs["kronos_forecast"], inputs["historical"], inputs["news"],
             )
             rec["report"] = analyst.analyze(user_text)
-            log.info(f"Analyzed {symbol} via {analyst.model_id}.")
+            rec["model"] = analyst.last_model_used
+            log.info(f"Analyzed {symbol} via {analyst.last_model_used}.")
         except Exception as e:  # one bad ticker shouldn't sink the batch
             log.warning(f"Analysis failed for {symbol}: {type(e).__name__}: {e}")
             rec["error"] = f"{type(e).__name__}: {e}"
