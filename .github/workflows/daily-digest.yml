@@ -19,6 +19,7 @@ concurrency:
 jobs:
   digest:
     runs-on: ubuntu-latest
+    timeout-minutes: 12   # hard safety net so a hung dependency can't run for hours
     env:
       SCHWAB_CLIENT_ID:      ${{ secrets.SCHWAB_CLIENT_ID }}
       SCHWAB_CLIENT_SECRET:  ${{ secrets.SCHWAB_CLIENT_SECRET }}
