@@ -1,0 +1,61 @@
+name: Daily Watchlist Digest
+
+# Runs the Schwab watchlist digest (src/main.py) on an always-on GitHub runner instead of the
+# laptop's Task Scheduler, which couldn't reliably fire at 6 AM while the laptop was hibernating.
+# Shared state (Schwab token.json + Kronos forecasts/) lives in S3 — both are git-ignored, and the
+# token is refreshed/written back each run. Kronos forecast generation stays on the laptop (GPU).
+on:
+  schedule:
+    # 11:00 UTC = 6:00 AM US-Central (CDT), Tue–Sat. NOTE: GitHub cron is UTC with no DST, so in
+    # winter (CST) this is 5:00 AM — bump the hour to 12 if you want 6 AM year-round.
+    - cron: '0 11 * * 2-6'
+  workflow_dispatch: {}   # manual "Run workflow" button for testing
+
+# Don't pile up overlapping runs if one is slow.
+concurrency:
+  group: daily-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    env:
+      SCHWAB_CLIENT_ID:      ${{ secrets.SCHWAB_CLIENT_ID }}
+      SCHWAB_CLIENT_SECRET:  ${{ secrets.SCHWAB_CLIENT_SECRET }}
+      GMAIL_USER:            ${{ secrets.GMAIL_USER }}
+      GMAIL_APP_PASSWORD:    ${{ secrets.GMAIL_APP_PASSWORD }}
+      DIGEST_TO:             ${{ secrets.DIGEST_TO }}
+      WATCHLIST_NAME:        ${{ secrets.WATCHLIST_NAME }}
+      FINNHUB_API_KEY:       ${{ secrets.FINNHUB_API_KEY }}
+      AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION:            us-west-2
+      AWS_DEFAULT_REGION:    us-west-2
+      ENABLE_ANALYSIS:       '1'
+      TOKEN_PATH:            token.json
+      S3_BUCKET:             harry-stock-digest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch Schwab token + Kronos forecasts from S3
+        run: |
+          aws s3 cp "s3://$S3_BUCKET/token.json" token.json
+          aws s3 sync "s3://$S3_BUCKET/forecasts" forecasts
+
+      - name: Run digest
+        run: python src/main.py
+
+      - name: Persist refreshed Schwab token back to S3
+        if: always()   # token may rotate even on a partial run; always write it back
+        run: |
+          if [ -f token.json ]; then
+            aws s3 cp token.json "s3://$S3_BUCKET/token.json"
+          fi
