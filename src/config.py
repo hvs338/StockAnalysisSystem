@@ -67,21 +67,25 @@ KRONOS_TOP_P = float(os.environ.get("KRONOS_TOP_P", "0.9"))
 # Use the cross-region INFERENCE PROFILE id (us. / global. prefix), NOT the bare model id —
 # these models aren't invocable on-demand by bare id (Bedrock returns a misleading
 # "not available for this account" AccessDenied).
-# Anthropic Claude access is now enabled on this account, so the default is Anthropic Claude
-# Sonnet 4.6 — faster/cheaper than Opus and access-granted for this account. (Opus 4.7/4.8
-# profiles exist in-region but are NOT yet access-granted: Converse → AccessDenied; Opus 4.5 and
-# Sonnet/Haiku 4.x do work. Enable 4.7/4.8 on the Bedrock "Model access" console page to use them,
-# then bump this id.) Swapping models is just changing this id — the Converse call path is model-agnostic.
-# Requires AWS creds (env / shared config / IAM role) and model access enabled in the region.
-# ENABLE_ANALYSIS gates the (future) email section; the CLI runs regardless.
-BEDROCK_MODEL = os.environ.get("BEDROCK_MODEL", "us.anthropic.claude-sonnet-4-6")
-# Fallback analysis model used when the primary (BEDROCK_MODEL) keeps failing. Bedrock's
-# Anthropic models intermittently throw a transient "unexpected error, try again" failure
-# (surfaced, confusingly, as AccessDeniedException) while Amazon Nova stays up — so the analyst
-# retries the primary BEDROCK_MAX_RETRIES times, then falls back to this model so the unattended
-# digest still produces analysis. Set BEDROCK_FALLBACK_MODEL empty to disable the fallback.
-BEDROCK_FALLBACK_MODEL = os.environ.get("BEDROCK_FALLBACK_MODEL", "us.amazon.nova-pro-v1:0").strip()
-BEDROCK_MAX_RETRIES = int(os.environ.get("BEDROCK_MAX_RETRIES", "3"))
+# Default analysis model is **Amazon Nova Pro**. Anthropic Claude access is enabled on this
+# account, BUT Bedrock's Anthropic models (Sonnet/Opus) currently HANG on full-length generations
+# for this account — Converse ReadTimeouts after 2+ min — while Nova Pro returns a full report in
+# ~10s. So Nova is the reliable default for the unattended digest. Flip BEDROCK_MODEL back to
+# "us.anthropic.claude-sonnet-4-6" once Anthropic-on-Bedrock is healthy again (no other change
+# needed — Converse is model-agnostic). Use the cross-region INFERENCE PROFILE id (us./global.
+# prefix), NOT the bare model id (bare ids return a misleading "not available" AccessDenied).
+# Requires AWS creds + model access enabled in the region. ENABLE_ANALYSIS gates the email section.
+BEDROCK_MODEL = os.environ.get("BEDROCK_MODEL", "us.amazon.nova-pro-v1:0")
+# Fallback model if the primary keeps failing (the analyst retries the primary BEDROCK_MAX_RETRIES
+# times, then falls back to this). Kept as Sonnet 4.6 so analysis upgrades automatically if you
+# flip the primary back once Anthropic recovers. Set empty to disable the fallback.
+BEDROCK_FALLBACK_MODEL = os.environ.get("BEDROCK_FALLBACK_MODEL", "us.anthropic.claude-sonnet-4-6").strip()
+BEDROCK_MAX_RETRIES = int(os.environ.get("BEDROCK_MAX_RETRIES", "2"))
+# Per-call Bedrock socket timeouts (seconds). Bounding read time — with boto's own retries disabled
+# (max_attempts=1) so the analyst's retry/fallback is the single retry authority — stops one slow or
+# hung Converse call from stalling the unattended digest for minutes (boto retries × our retries).
+BEDROCK_CONNECT_TIMEOUT = int(os.environ.get("BEDROCK_CONNECT_TIMEOUT", "10"))
+BEDROCK_READ_TIMEOUT = int(os.environ.get("BEDROCK_READ_TIMEOUT", "90"))
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 ENABLE_ANALYSIS = _env_bool("ENABLE_ANALYSIS", "0")
 ANALYSIS_MAX_TOKENS = int(os.environ.get("ANALYSIS_MAX_TOKENS", "4096"))

@@ -21,6 +21,7 @@ import time
 from datetime import date, datetime, timezone
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 
 import alert_rules
@@ -203,7 +204,17 @@ class BedrockClient:
     @property
     def client(self):
         if self._client is None:
-            self._client = boto3.client("bedrock-runtime", region_name=self.region)
+            # Bound each call so a slow/hung Bedrock response can't stall the digest. max_attempts=1
+            # disables boto's internal retries — _invoke_with_retries is the single retry authority,
+            # so timeouts don't multiply (boto retries × our retries × fallback).
+            self._client = boto3.client(
+                "bedrock-runtime", region_name=self.region,
+                config=Config(
+                    connect_timeout=config.BEDROCK_CONNECT_TIMEOUT,
+                    read_timeout=config.BEDROCK_READ_TIMEOUT,
+                    retries={"max_attempts": 1, "mode": "standard"},
+                ),
+            )
         return self._client
 
     def _converse(self, model_id: str, user_text: str) -> str:
